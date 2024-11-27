@@ -7,7 +7,7 @@
 
 [Princeton University Press, 2012](http://press.princeton.edu/titles/9632.html)
 
-[uavbook.pdf](https://drive.google.com/file/d/15KLce57BC_KlBr4b4o4CxKX6UooYqliC/view?usp=share_link)
+[uavbook.pdf](https://drive.google.com/file/d/15RGFf29_lMZ_I2HknxMJvU-ds78fFdX-/view?usp=sharing)
   This file is a work in progress.  The intent is that this file will eventually become a second edition to the book.  But beware, it has not been carefully proof read, and we continue to update it regularly.
 
 ## Lecture Material
