@@ -11,18 +11,22 @@ mavsimPy
 import os, sys
 # insert parent directory at beginning of python search path
 from pathlib import Path
+import pyqtgraph as pg
 sys.path.insert(0,os.fspath(Path(__file__).parents[2]))
 # use QuitListener for Linux or PC <- doesn't work on Mac
 #from python_tools.quit_listener import QuitListener
 import parameters.simulation_parameters as SIM
 from message_types.msg_state import MsgState
-from viewers.view_manager import ViewManager
+# from viewers.view_manager import ViewManager
+from viewers.mav_viewer import MavViewer
 import time
 
 # #quitter = QuitListener()
 state = MsgState()
-viewers = ViewManager(mav=True, 
-                      video=False, video_name='chap2.mp4')
+app = pg.QtWidgets.QApplication([])
+mav_viewer = MavViewer(app=app)
+# viewers = ViewManager(mav=True, 
+#                       video=False, video_name='chap2.mp4')
 
 # initialize the simulation time
 sim_time = SIM.start_time
@@ -48,10 +52,12 @@ while sim_time < end_time:
     else:
         state.phi += 0.1*SIM.ts_simulation
     # -------update viewer and video-------------
-    viewers.update(
-        sim_time,
-        true_state=state,  # true states
-    )
+    mav_viewer.update(state)
+    mav_viewer.process_app()
+    # viewers.update(
+    #     sim_time,
+    #     true_state=state,  # true states
+    # )
 
     # -------increment time-------------
     sim_time += SIM.ts_simulation
@@ -64,4 +70,3 @@ while sim_time < end_time:
     # if quitter.check_quit():
     #     break
 
-viewers.close()
