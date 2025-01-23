@@ -17,16 +17,15 @@ sys.path.insert(0,os.fspath(Path(__file__).parents[2]))
 #from python_tools.quit_listener import QuitListener
 import parameters.simulation_parameters as SIM
 from message_types.msg_state import MsgState
-# from viewers.view_manager import ViewManager
-from viewers.mav_viewer import MavViewer
+from viewers.view_manager import ViewManager
+# from viewers.mav_viewer import MavViewer
 import time
 
 # #quitter = QuitListener()
 state = MsgState()
 app = pg.QtWidgets.QApplication([])
-mav_viewer = MavViewer(app=app)
-# viewers = ViewManager(mav=True, 
-#                       video=False, video_name='chap2.mp4')
+# mav_viewer = MavViewer(app=app)
+viewers = ViewManager(video=False, animation=True, video_name='chap2.mp4')
 
 # initialize the simulation time
 sim_time = SIM.start_time
@@ -52,12 +51,12 @@ while sim_time < end_time:
     else:
         state.phi += 0.1*SIM.ts_simulation
     # -------update viewer and video-------------
-    mav_viewer.update(state)
-    mav_viewer.process_app()
-    # viewers.update(
-    #     sim_time,
-    #     true_state=state,  # true states
-    # )
+    # mav_viewer.update(state)
+    # mav_viewer.process_app()
+    viewers.update(
+        sim_time,
+        true_state=state,  # true states
+    )
 
     # -------increment time-------------
     sim_time += SIM.ts_simulation
