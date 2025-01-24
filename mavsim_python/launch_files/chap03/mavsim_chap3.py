@@ -25,9 +25,8 @@ import time
 # initialize elements of the architecture
 mav = MavDynamics(SIM.ts_simulation)
 delta = MsgDelta()
-viewers = ViewManager(mav=True, 
-                      data=True,
-                      video=False, video_name='chap3.mp4')
+viewers = ViewManager(data=True,
+                      video=False, animation=True, video_name='chap3.mp4')
 
 # initialize the simulation time
 sim_time = SIM.start_time
@@ -39,8 +38,8 @@ while sim_time < end_time:
     # ------- vary forces and moments to check dynamics -------------
     fx = 0  # 10
     fy = 0  # 10
-    fz = 100  # 10
-    Mx = 0.1  # 0.1
+    fz =  10
+    Mx = 0
     My = 0  # 0.1
     Mz = 0  # 0.1
     forces_moments = np.array([[fx, fy, fz, Mx, My, Mz]]).T

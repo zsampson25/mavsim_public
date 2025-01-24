@@ -73,6 +73,8 @@ print("p_dot: " , x_dot[10])
 print("q_dot: " , x_dot[11])
 print("r_dot: " , x_dot[12])
 
+print(type(x_dot[12,0]))
+
 # State Derivatives: Case 2
 # north_dot:  [0.08746356]
 # east_dot:  [-1.96793003]

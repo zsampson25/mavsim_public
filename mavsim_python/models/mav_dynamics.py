@@ -148,7 +148,7 @@ class MavDynamics:
         r_dot = pqr_dot.item(2)
 
         # collect the derivative of the states
-        x_dot = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0]]).T
+        x_dot = np.array([[0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.]]).T
         x_dot[0] = north_dot
         x_dot[1] = east_dot
         x_dot[2] = down_dot
