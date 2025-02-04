@@ -6,7 +6,7 @@ compute_trim
 """
 import numpy as np
 from scipy.optimize import minimize
-from tools.rotations import Euler2Quaternion
+from tools.rotations import euler_to_quaternion
 from message_types.msg_delta import MsgDelta
 import time
 
@@ -15,17 +15,19 @@ def compute_trim(mav, Va, gamma):
 
     ##### TODO #####
     # set the initial conditions of the optimization
-    e0 = Euler2Quaternion(0., gamma, 0.)
+    alpha = 0.0 # angle of attack, change if needed
+    theta = alpha + gamma
+    e0 = euler_to_quaternion(0., theta, 0.)
     state0 = np.array([[0],  # pn
                    [0],  # pe
                    [0],  # pd
-                   [0],  # u
+                   [Va],  # u
                    [0.], # v
                    [0.], # w
-                   [1],  # e0
-                   [0],  # e1
-                   [0],  # e2
-                   [0],  # e3
+                   [e0[0]],  # e0
+                   [e0[1]],  # e1
+                   [e0[2]],  # e2
+                   [e0[3]],  # e3
                    [0.], # p
                    [0.], # q
                    [0.]  # r
@@ -77,5 +79,35 @@ def compute_trim(mav, Va, gamma):
 def trim_objective_fun(x, mav, Va, gamma):
     # objective function to be minimized
     ##### TODO #####
-    J = 0
+    state = state = x[:13]
+    delta = MsgDelta(elevator=x.item(13),
+                      aileron=x.item(14),
+                      rudder=x.item(15),
+                      throttle=x.item(16))
+    desired_trim_state_dot = np.array([
+                            [0.],  # pn
+                            [0.],  # pe
+                            [-Va * np.sin(gamma)],  # pd
+                            [0.],  # u
+                            [0.], # v
+                            [0.], # w
+                            [0.],  # e0
+                            [1],  # e1
+                            [0.],  # e2
+                            [0.],  # e3
+                            [0.], # p
+                            [0.], # q
+                            [0.]  # r
+                            ])
+
+
+    # set state and input of the aircraft
+    mav._state = state
+    mav._update_velocity_data()
+
+    forces_moments = mav._forces_moments(delta) # get forces and moments
+    f = mav._derivatives(state, forces_moments) # get state derivatives
+
+    J = np.linalg.norm(desired_trim_state_dot[2:13] - f[2:13])**2
+
     return J
