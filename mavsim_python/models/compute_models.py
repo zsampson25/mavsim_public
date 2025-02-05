@@ -93,16 +93,22 @@ def compute_tf_model(mav, trim_state, trim_input):
 
     ###### TODO ######
     # define transfer function constants
-    a_phi1 = 0
-    a_phi2 = 0
-    a_theta1 = 0
-    a_theta2 = 0
-    a_theta3 = 0
+
+    # Compute transfer function coefficients
+    #_____Possible Changes_____
+    # Va_trim could be mav._Va because the book doesnt say the trim speed.
+    a_phi1 = -1/2 * MAV.rho * Va_trim**2 * MAV.S_wing * MAV.b * MAV.C_p_p * MAV.b / (2 * Va_trim)
+    a_phi2 = 1/2 * MAV.rho * Va_trim**2 * MAV.S_wing * MAV.b * MAV.C_p_delta_a
+    a_theta1 = -1/(2*MAV.Jy) * MAV.rho * Va_trim**2 * MAV.c * MAV.S_wing * MAV.C_m_q * MAV.c / (2 * Va_trim)
+    a_theta2 = -1/(2*MAV.Jy) * MAV.rho * Va_trim**2 * MAV.c * MAV.S_wing * MAV.C_m_alpha
+    a_theta3 = 1/(2*MAV.Jy) * MAV.rho * Va_trim**2 * MAV.c * MAV.S_wing * MAV.C_m_delta_e
 
     # Compute transfer function coefficients using new propulsion model
-    a_V1 = 0
-    a_V2 = 0
-    a_V3 = 0
+    deriv1 = dT_ddelta_t(mav, Va_trim, trim_input.throttle)
+    a_V1 = MAV.rho * Va_trim * MAV.S_prop / MAV.mass * (MAV.C_D_0 + MAV.C_D_alpha * alpha_trim + MAV.C_D_delta_e * trim_input.elevator)\
+         - 1/MAV.mass * deriv1
+    a_V2 = deriv1 / MAV.mass
+    a_V3 = MAV.gravity * np.cos(theta_trim - alpha_trim)
 
     return Va_trim, alpha_trim, theta_trim, a_phi1, a_phi2, a_theta1, a_theta2, a_theta3, a_V1, a_V2, a_V3
 
@@ -128,8 +134,25 @@ def euler_state(x_quat):
     # to x_euler with attitude represented by Euler angles
     
     ##### TODO #####
-    x_euler = np.zeros((12,1))
+    x_euler = np.zeros((12, 1))  # Initialize the output state vector
+
+    # **1. Copy translational and velocity states**
+    x_euler[0:6] = x_quat[0:6]  # [pn, pe, pd, u, v, w]
+
+    # **2. Convert quaternion to Euler angles**
+    q = x_quat[6:10]  # Extract quaternion components
+    phi, theta, psi = quaternion_to_euler(q)  # Convert quaternion to Euler
+
+    # Store Euler angles
+    x_euler[6] = phi
+    x_euler[7] = theta
+    x_euler[8] = psi
+
+    # **3. Copy angular velocities**
+    x_euler[9:12] = x_quat[10:13]  # [p, q, r]
+
     return x_euler
+
 
 def quaternion_state(x_euler):
     # convert state x_euler with attitude represented by Euler angles
@@ -137,6 +160,18 @@ def quaternion_state(x_euler):
 
     ##### TODO #####
     x_quat = np.zeros((13,1))
+    x_quat[0:6] = x_euler[0:6] # copy the first 6 states
+    # compute the quaternion states
+    phi = x_euler.item(6)
+    theta = x_euler.item(7)
+    psi = x_euler.item(8)
+    e = euler_to_quaternion(phi, theta, psi)
+    x_quat[6] = e.item(0)
+    x_quat[7] = e.item(1)
+    x_quat[8] = e.item(2)
+    x_quat[9] = e.item(3)
+    x_quat[10:13] = x_euler[9:12] # copy the last 3 states
+
     return x_quat
 
 def f_euler(mav, x_euler, delta):
@@ -167,6 +202,9 @@ def df_dx(mav, x_euler, delta):
 def df_du(mav, x_euler, delta):
     # take partial of f_euler with respect to input
     eps = 0.01  # deviation
+    n = 12
+    A = np.zeros((n, n))  # Jacobian of f wrt x
+    f_x = f_euler(mav, x_euler, delta)
 
     ##### TODO #####
     B = np.zeros((12, 4))  # Jacobian of f wrt u
@@ -186,5 +224,7 @@ def dT_ddelta_t(mav, Va, delta_t):
     eps = 0.01
 
     ##### TODO #####
-    dT_ddelta_t = 0
+    thrust1, torque1 = mav._motor_thrust_torque(Va, delta_t)
+    thrust2, torque2 = mav._motor_thrust_torque(Va, delta_t + eps)
+    dT_ddelta_t = (thrust2 - thrust1) / eps
     return dT_ddelta_t
