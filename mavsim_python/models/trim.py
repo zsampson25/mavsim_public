@@ -18,16 +18,16 @@ def compute_trim(mav, Va, gamma):
     alpha = 0.0 # angle of attack, change if needed
     theta = alpha + gamma
     e0 = euler_to_quaternion(0., theta, 0.)
-    state0 = np.array([[0],  # pn
-                   [0],  # pe
-                   [0],  # pd
+    state0 = np.array([[0.],  # pn
+                   [0.],  # pe
+                   [0.],  # pd
                    [Va],  # u
                    [0.], # v
                    [0.], # w
-                   [e0[0]],  # e0
-                   [e0[1]],  # e1
-                   [e0[2]],  # e2
-                   [e0[3]],  # e3
+                   [e0[0,0]],  # e0
+                   [e0[1,0]],  # e1
+                   [e0[2,0]],  # e2
+                   [e0[3,0]],  # e3
                    [0.], # p
                    [0.], # q
                    [0.]  # r
@@ -62,7 +62,7 @@ def compute_trim(mav, Va, gamma):
              })
     # solve the minimization problem to find the trim states and inputs
 
-    res = minimize(trim_objective_fun, x0, method='SLSQP', args=(mav, Va, gamma),
+    res = minimize(trim_objective_fun, x0.flatten(), method='SLSQP', args=(mav, Va, gamma),
                    constraints=cons, 
                    options={'ftol': 1e-10, 'disp': True})
     # extract trim state and input and return
@@ -106,7 +106,7 @@ def trim_objective_fun(x, mav, Va, gamma):
     mav._update_velocity_data()
 
     forces_moments = mav._forces_moments(delta) # get forces and moments
-    f = mav._derivatives(state, forces_moments) # get state derivatives
+    f = mav._f(state, forces_moments) # get state derivatives
 
     J = np.linalg.norm(desired_trim_state_dot[2:13] - f[2:13])**2
 

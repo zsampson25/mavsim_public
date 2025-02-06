@@ -152,12 +152,19 @@ class MavDynamics(MavDynamicsForces):
 
         # compute logitudinal torque in body frame (My)
         My = 0.5 * rho * Va**2 * S * MAV.c * (MAV.C_m_0 + MAV.C_m_alpha*alpha + MAV.C_m_q*(MAV.c*q/(2*Va)) + MAV.C_m_delta_e*delta_e)
-        My = My[0]
+        My = My
         # compute lateral torques in body frame (Mx, Mz)
         Mx = 0.5 * rho * Va**2 * S * MAV.b * (MAV.C_ell_0 + MAV.C_ell_beta*beta + MAV.C_ell_p*(MAV.b*p/(2*Va)) + MAV.C_ell_r*(MAV.b*r/(2*Va)) + MAV.C_ell_delta_a*delta_a + MAV.C_ell_delta_r*delta_r)
-        Mx = Mx[0] - torque_prop 
+        Mx = Mx - torque_prop 
         Mz = 0.5 * rho * Va**2 * S * MAV.b * (MAV.C_n_0 + MAV.C_n_beta*beta + MAV.C_n_p*(MAV.b*p/(2*Va)) + MAV.C_n_r*(MAV.b*r/(2*Va)) + MAV.C_n_delta_a*delta_a + MAV.C_n_delta_r*delta_r)
-        Mz = Mz[0]
+        Mz = Mz
+        fx = fx.item() if isinstance(fx, np.ndarray) else float(fx)
+        fy = fy.item() if isinstance(fy, np.ndarray) else float(fy)
+        fz = fz.item() if isinstance(fz, np.ndarray) else float(fz)
+        Mx = Mx.item() if isinstance(Mx, np.ndarray) else float(Mx)
+        My = My.item() if isinstance(My, np.ndarray) else float(My)
+        Mz = Mz.item() if isinstance(Mz, np.ndarray) else float(Mz)
+
         forces_moments = np.array([fx, fy, fz, Mx, My, Mz])
         
 
