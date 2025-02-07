@@ -11,6 +11,7 @@ import parameters.aerosonde_parameters as MAV
 from parameters.simulation_parameters import ts_simulation as Ts
 from message_types.msg_delta import MsgDelta
 from models.mav_dynamics import MavDynamics
+from IPython.core.debugger import set_trace
 
 
 
@@ -108,7 +109,7 @@ def compute_tf_model(mav, trim_state, trim_input):
     # Compute transfer function coefficients using new propulsion model
     deriv1 = dT_ddelta_t(mav, Va_trim, trim_input.throttle)
     deriv2 = dT_dVa(mav, Va_trim, trim_input.throttle)
-    a_V1 = (MAV.rho * Va_trim * MAV.S_prop) / MAV.mass * (MAV.C_D_0 + MAV.C_D_alpha * alpha_trim + MAV.C_D_delta_e * trim_input.elevator)\
+    a_V1 = (MAV.rho * Va_trim * MAV.S_wing) / MAV.mass * (MAV.C_D_0 + MAV.C_D_alpha * alpha_trim + MAV.C_D_delta_e * trim_input.elevator)\
          - 1/MAV.mass * deriv2
     a_V2 = deriv1 / MAV.mass
     a_V3 = MAV.gravity * np.cos(theta_trim - alpha_trim)
@@ -135,21 +136,33 @@ def compute_ss_model(mav, trim_state, trim_input):
     B = df_du(mav, x_euler, trim_input)  # 12x4
     # A_eigenvalues, _ = np.linalg.eig(A)  # Eigenvalues of full-state Jacobian
     # print('Eigenvalues of full-state Jacobian:', A_eigenvalues)
+    
+
 
 
     # **2. Extract Longitudinal System Matrices**
     # Longitudinal states: [u, w, q, theta, h] (5x1)
     lon_idx = [3, 5, 10, 7, 2]  # Indices of longitudinal states
     A_lon = A[np.ix_(lon_idx, lon_idx)]  # Extract relevant rows & columns (5x5)
-    # eigenvalues = analyze_longitudinal_modes(A_lon)
-    # Example Usage (Replace A_lon with actual matrix)
-    eigenvalues, modes = analyze_longitudinal_modes(A_lon)
-    print("Eigenvalues of A_lon:", eigenvalues)
-    print("Short-Period Mode:", modes["short_period"])
-    print("Phugoid Mode:", modes["phugoid"])
-
     B_lon = B[np.ix_(lon_idx, [0, 3])]  # Inputs: [delta_elevator, delta_throttle] (5x2)
 
+    for i in range(0,5):
+        A_lon[i,4] = -A_lon[i,4]
+        A_lon[4,i] = -A_lon[4,i]
+    for i in range(0,2):
+        B_lon[4,i] = -B_lon[4,i] 
+
+    # A_lon[3, 2] = 1  # Ensure correct relationship: theta-dot = q
+
+
+    # eigenvalues = analyze_longitudinal_modes(A_lon)
+    # Example Usage (Replace A_lon with actual matrix)
+    # eigenvalues, modes = analyze_longitudinal_modes(A_lon)
+    # print("Eigenvalues of A_lon:", eigenvalues)
+    # print("Short-Period Mode:", modes["short_period"])
+    # print("Phugoid Mode:", modes["phugoid"])
+
+    
     # **3. Extract Lateral System Matrices**
     # Lateral states: [v, p, r, phi, psi] (5x1)
     lat_idx = [4, 9, 11, 6, 8]  # Indices of lateral states
@@ -167,7 +180,7 @@ def euler_state(x_quat):
     x_euler = np.zeros((12, 1))  # Initialize the output state vector
 
     # **1. Copy translational and velocity states**
-    x_euler[0:6] = x_quat[0:6]  # [pn, pe, pd, u, v, w]
+    x_euler[0:6] =np.copy(x_quat[0:6])  # [pn, pe, pd, u, v, w]
 
     # **2. Convert quaternion to Euler angles**
     q = x_quat[6:10]  # Extract quaternion components
@@ -179,7 +192,7 @@ def euler_state(x_quat):
     x_euler[8] = psi
 
     # **3. Copy angular velocities**
-    x_euler[9:12] = x_quat[10:13]  # [p, q, r]
+    x_euler[9:12] = np.copy(x_quat[10:13])  # [p, q, r]
 
     return x_euler
 
@@ -200,7 +213,7 @@ def quaternion_state(x_euler):
     x_quat[7] = e.item(1)
     x_quat[8] = e.item(2)
     x_quat[9] = e.item(3)
-    x_quat[10:13] = x_euler[9:12] # copy the last 3 states
+    x_quat[10:13] = np.copy(x_euler[9:12]) # copy the last 3 states
 
     return x_quat
 
@@ -216,24 +229,16 @@ def f_euler(mav, x_euler, delta):
     mav._state = x_quat
     mav._update_velocity_data()
     ##### TODO #####
-    f_euler = np.zeros((12,1))
+    f_euler_ = np.zeros((12,1))
     forces_moments = mav._forces_moments(delta)
     f = mav._f(x_quat, forces_moments)
-    # print('f_euler', f)
-    f_euler[0:6] = f[0:6]
-    # print('fCheck',f[9:12])
-    f_euler[9:12] = f[10:13]
+    f_euler_ = euler_state(f)
+
     # correct the attitude states
-    quat = x_quat[6:10]
-    euler = quaternion_to_euler(quat)
     e = x_quat[6:10]
     phi = x_euler.item(6)
     theta = x_euler.item(7)
     psi = x_euler.item(8)
-    p = f.item(10)
-    q = f.item(11)
-    r = f.item(12)
-    q_dot = f[6:10]
     dTheta_dquat = np.zeros((3,4))
     for j in range(0,4):
         tmp = np.zeros((4, 1))
@@ -244,9 +249,9 @@ def f_euler(mav, x_euler, delta):
         dTheta_dquat[1][j] = (phi_eps - phi) / 0.001
         dTheta_dquat[2][j] = (psi_eps - psi) / 0.001
 
-    f_euler[6:9] = np.copy(dTheta_dquat @ f[6:10])
+    f_euler_[6:9] = np.copy(dTheta_dquat @ f[6:10])
     
-    return f_euler
+    return f_euler_
 
 def d_quaternion_to_euler(q):
     """
@@ -294,18 +299,17 @@ def df_dx(mav, x_euler, delta):
     for i in range(n):
         x_perturbed = np.copy(x_euler)  # Copy original state
         x_perturbed[i] += eps  # Perturb state i
+        if i == 9:
+            set_trace()
 
         f_euler1 = f_euler(mav, x_perturbed, delta)  # Compute f(x + eps)
 
         # Compute finite difference approximation of partial derivative
-        A[:, i] = (f_euler1.flatten() - f_euler0.flatten()) / eps
+        df = (f_euler1.flatten() - f_euler0.flatten()) / eps
+            
+        A[:, i] = df
 
     return A
-
-
-
-import numpy as np
-from message_types.msg_delta import MsgDelta
 
 def df_du(mav, x_euler, delta):
     """
