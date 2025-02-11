@@ -11,7 +11,7 @@ import parameters.aerosonde_parameters as MAV
 from parameters.simulation_parameters import ts_simulation as Ts
 from message_types.msg_delta import MsgDelta
 from models.mav_dynamics import MavDynamics
-from IPython.core.debugger import set_trace
+# from IPython.core.debugger import set_trace
 
 
 
@@ -143,7 +143,7 @@ def compute_ss_model(mav, trim_state, trim_input):
     # **2. Extract Longitudinal System Matrices**
     # Longitudinal states: [u, w, q, theta, h] (5x1)
     lon_idx = [3, 5, 10, 7, 2]  # Indices of longitudinal states
-    A_lon = A[np.ix_(lon_idx, lon_idx)]  # Extract relevant rows & columns (5x5)
+    A_lon = A[np.ix_([3, 5, 10, 7, 2], [3, 5, 10, 7, 2])]  # Extract relevant rows & columns (5x5)
     B_lon = B[np.ix_(lon_idx, [0, 3])]  # Inputs: [delta_elevator, delta_throttle] (5x2)
 
     for i in range(0,5):
@@ -299,10 +299,12 @@ def df_dx(mav, x_euler, delta):
     for i in range(n):
         x_perturbed = np.copy(x_euler)  # Copy original state
         x_perturbed[i] += eps  # Perturb state i
-        if i == 9:
-            set_trace()
+        # if i == 9:
+        #     set_trace()
 
         f_euler1 = f_euler(mav, x_perturbed, delta)  # Compute f(x + eps)
+        if i == 7:
+            print(f_euler1)
 
         # Compute finite difference approximation of partial derivative
         df = (f_euler1.flatten() - f_euler0.flatten()) / eps

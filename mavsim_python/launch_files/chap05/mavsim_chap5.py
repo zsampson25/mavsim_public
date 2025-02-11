@@ -61,7 +61,7 @@ while sim_time < end_time:
     #current_wind = wind.update()  # get the new wind vector
     current_wind = np.zeros((6, 1))
     # this input excites the phugoid mode by adding an elevator impulse at t = 5.0 s
-    delta.elevator = delta_e_trim + input_signal.impulse(sim_time)
+    # delta.elevator = delta_e_trim + input_signal.impulse(sim_time)
     # this input excites the roll and spiral divergence modes by adding an aileron doublet at t = 5.0 s
     # delta.aileron = delta_a_trim + input_signal.doublet(sim_time)
     # this input excites the dutch roll mode by adding a rudder doublet at t = 5.0 s
