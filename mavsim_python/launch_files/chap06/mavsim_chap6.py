@@ -18,9 +18,9 @@ import parameters.simulation_parameters as SIM
 from tools.signals import Signals
 from models.mav_dynamics_control import MavDynamics
 from models.wind_simulation import WindSimulation
-from controllers.autopilot import Autopilot
+# from controllers.autopilot import Autopilot
 #from controllers.autopilot_tecs import Autopilot
-#from controllers.lqr_with_rate_damping import Autopilot
+from controllers.autopilot_lqr_max import Autopilot
 from viewers.view_manager import ViewManager
 import time
 
@@ -30,7 +30,7 @@ import time
 wind = WindSimulation(SIM.ts_simulation)
 mav = MavDynamics(SIM.ts_simulation)
 autopilot = Autopilot(SIM.ts_simulation)
-viewers = ViewManager(mav=True, 
+viewers = ViewManager(animation=True, 
                       data=True,
                       video=False, video_name='chap6.mp4')
 
