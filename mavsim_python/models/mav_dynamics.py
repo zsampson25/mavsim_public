@@ -13,7 +13,7 @@ mavsim_python
 import numpy as np
 # load message types
 from message_types.msg_state import MsgState
-import parameters.aerosonde_parameters as MAV
+import parameters.aerosonde_parameters_max as MAV
 from tools.rotations import quaternion_to_rotation, quaternion_to_euler
 
 class MavDynamics:

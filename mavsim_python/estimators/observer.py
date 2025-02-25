@@ -20,25 +20,25 @@ class Observer:
         self.estimated_state = MsgState()
 
         ##### TODO #####
-        self.lpf_gyro_x = AlphaFilter(alpha=0., y0=initial_measurements.gyro_x)
-        self.lpf_gyro_y = AlphaFilter(alpha=0., y0=initial_measurements.gyro_y)
-        self.lpf_gyro_z = AlphaFilter(alpha=0., y0=initial_measurements.gyro_z)
-        self.lpf_accel_x = AlphaFilter(alpha=0., y0=initial_measurements.accel_x)
-        self.lpf_accel_y = AlphaFilter(alpha=0., y0=initial_measurements.accel_y)
-        self.lpf_accel_z = AlphaFilter(alpha=0., y0=initial_measurements.accel_z)
+        self.lpf_gyro_x = AlphaFilter(alpha=0.7, y0=initial_measurements.gyro_x)
+        self.lpf_gyro_y = AlphaFilter(alpha=0.7, y0=initial_measurements.gyro_y)
+        self.lpf_gyro_z = AlphaFilter(alpha=0.7, y0=initial_measurements.gyro_z)
+        self.lpf_accel_x = AlphaFilter(alpha=0.7, y0=initial_measurements.accel_x)
+        self.lpf_accel_y = AlphaFilter(alpha=0.7, y0=initial_measurements.accel_y)
+        self.lpf_accel_z = AlphaFilter(alpha=0.7, y0=initial_measurements.accel_z)
         # use alpha filters to low pass filter absolute and differential pressure
-        self.lpf_abs = AlphaFilter(alpha=0., y0=initial_measurements.abs_pressure)
-        self.lpf_diff = AlphaFilter(alpha=0., y0=initial_measurements.diff_pressure)
+        self.lpf_abs = AlphaFilter(alpha=0.9, y0=initial_measurements.abs_pressure)
+        self.lpf_diff = AlphaFilter(alpha=0.7, y0=initial_measurements.diff_pressure)
         # ekf for phi and theta
         self.attitude_ekf = ExtendedKalmanFilterContinuousDiscrete(
             f=self.f_attitude, 
             Q=np.diag([
-                (0)**2, # phi 
-                (0)**2, # theta
+                (1e-3)**2, # phi 
+                (1e-3)**2, # theta
                 ]), 
             P0= np.diag([
-                (0)**2, # phi
-                (0)**2, # theta
+                (10*np.pi/180.)**2, # phi
+                (10*np.pi/180.)**2, # theta
                 ]), 
             xhat0=np.array([
                 [0.*np.pi/180.], # phi 

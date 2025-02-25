@@ -9,7 +9,7 @@ from numpy import array, sin, cos, radians, concatenate, zeros, diag
 from scipy.linalg import solve_continuous_are, inv
 import parameters.control_parameters as AP
 from tools.wrap import wrap
-import models.model_coef as M
+import models.model_coef_solution as M
 from message_types.msg_state import MsgState
 from message_types.msg_delta import MsgDelta
 
@@ -53,6 +53,25 @@ class Autopilot:
         BBlon = concatenate((M.B_lon, zeros((2, 2))), axis=0)
         Qlon = diag([10.0, 10.0, 0.001, 0.001, 10.0, 100.0, 100.0]) # u, w, q, theta, h, intH, intVa
         Rlon = diag([1.0, 1.0])  # e, t
+
+        print("AAlon shape:", AAlon.shape)
+        print("BBlon shape:", BBlon.shape)
+        print("Qlon shape:", Qlon.shape)
+        print("Rlon shape:", Rlon.shape)
+        eig_AAlon = np.linalg.eigvals(AAlon)
+        print("Eigenvalues of AAlon:", eig_AAlon)
+        eig_Qlon = np.linalg.eigvals(Qlon)
+        print("Eigenvalues of Qlon:", eig_Qlon)
+        eig_Rlon = np.linalg.eigvals(Rlon)
+        print("Eigenvalues of Rlon:", eig_Rlon)
+        from numpy.linalg import matrix_rank
+
+        Ctrb_matrix = np.hstack([BBlon, AAlon @ BBlon, AAlon @ AAlon @ BBlon])
+        rank_Ctrb = matrix_rank(Ctrb_matrix)
+
+        print("Controllability matrix rank:", rank_Ctrb)
+        print("Expected rank:", AAlon.shape[0])  # Should be equal to n (full rank)
+        
         Plon = solve_continuous_are(AAlon, BBlon, Qlon, Rlon)
         self.Klon = inv(Rlon) @ BBlon.T @ Plon
         self.commanded_state = MsgState()

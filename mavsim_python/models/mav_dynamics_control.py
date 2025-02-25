@@ -13,7 +13,7 @@ from models.mav_dynamics import MavDynamics as MavDynamicsForces
 # load message types
 from message_types.msg_state import MsgState
 from message_types.msg_delta import MsgDelta
-import parameters.aerosonde_parameters as MAV
+import parameters.aerosonde_parameters_max as MAV
 from tools.rotations import quaternion_to_rotation, quaternion_to_euler
 
 
