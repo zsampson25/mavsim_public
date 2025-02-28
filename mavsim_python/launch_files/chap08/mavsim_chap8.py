@@ -19,10 +19,10 @@ import parameters.simulation_parameters as SIM
 from tools.signals import Signals
 from models.mav_dynamics_sensors import MavDynamics
 from models.wind_simulation import WindSimulation
-from controllers.autopilot import Autopilot
+from controllers.autopilot_lqr import Autopilot
 #from controllers.lqr_with_rate_damping import Autopilot
-#from estimators.observer import Observer
-from estimators.observer_full import Observer
+from estimators.observer import Observer
+# from estimators.observer_full import Observer
 from viewers.view_manager import ViewManager
 import time
 
@@ -33,7 +33,7 @@ wind = WindSimulation(SIM.ts_simulation)
 mav = MavDynamics(SIM.ts_simulation)
 autopilot = Autopilot(SIM.ts_simulation)
 observer = Observer(SIM.ts_simulation)
-viewers = ViewManager(mav=True, 
+viewers = ViewManager(animation=True, 
                       data=True,
                       video=False, video_name='chap8.mp4')
 
@@ -55,7 +55,7 @@ chi_command = Signals(dc_offset=np.radians(0.0),
 
 # initialize the simulation time
 sim_time = SIM.start_time
-end_time = 100
+end_time = 10000
 
 # main simulation loop
 print("Press 'Esc' to exit...")

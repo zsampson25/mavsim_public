@@ -20,15 +20,15 @@ class Observer:
         self.estimated_state = MsgState()
 
         ##### TODO #####
-        self.lpf_gyro_x = AlphaFilter(alpha=0.7, y0=initial_measurements.gyro_x)
-        self.lpf_gyro_y = AlphaFilter(alpha=0.7, y0=initial_measurements.gyro_y)
-        self.lpf_gyro_z = AlphaFilter(alpha=0.7, y0=initial_measurements.gyro_z)
-        self.lpf_accel_x = AlphaFilter(alpha=0.7, y0=initial_measurements.accel_x)
-        self.lpf_accel_y = AlphaFilter(alpha=0.7, y0=initial_measurements.accel_y)
-        self.lpf_accel_z = AlphaFilter(alpha=0.7, y0=initial_measurements.accel_z)
+        self.lpf_gyro_x = AlphaFilter(alpha=0.3, y0=initial_measurements.gyro_x)
+        self.lpf_gyro_y = AlphaFilter(alpha=0.3, y0=initial_measurements.gyro_y)
+        self.lpf_gyro_z = AlphaFilter(alpha=0.3, y0=initial_measurements.gyro_z)
+        self.lpf_accel_x = AlphaFilter(alpha=0.3, y0=initial_measurements.accel_x)
+        self.lpf_accel_y = AlphaFilter(alpha=0.3, y0=initial_measurements.accel_y)
+        self.lpf_accel_z = AlphaFilter(alpha=0.3, y0=initial_measurements.accel_z)
         # use alpha filters to low pass filter absolute and differential pressure
-        self.lpf_abs = AlphaFilter(alpha=0.9, y0=initial_measurements.abs_pressure)
-        self.lpf_diff = AlphaFilter(alpha=0.7, y0=initial_measurements.diff_pressure)
+        self.lpf_abs = AlphaFilter(alpha=0.5, y0=initial_measurements.abs_pressure)
+        self.lpf_diff = AlphaFilter(alpha=0.3, y0=initial_measurements.diff_pressure)
         # ekf for phi and theta
         self.attitude_ekf = ExtendedKalmanFilterContinuousDiscrete(
             f=self.f_attitude, 
@@ -37,8 +37,8 @@ class Observer:
                 (1e-3)**2, # theta
                 ]), 
             P0= np.diag([
-                (10*np.pi/180.)**2, # phi
-                (10*np.pi/180.)**2, # theta
+                (0.*np.pi/180.)**2, # phi
+                (0.*np.pi/180.)**2, # theta
                 ]), 
             xhat0=np.array([
                 [0.*np.pi/180.], # phi 
@@ -55,24 +55,26 @@ class Observer:
         # ekf for pn, pe, Vg, chi, wn, we, psi
         self.position_ekf = ExtendedKalmanFilterContinuousDiscrete(
             f=self.f_smooth, 
-            Q=np.diag([
-                (0.0)**2,  # pn
-                (0.0)**2,  # pe
-                (0.0)**2,  # Vg
-                (0.0)**2, # chi
-                (0.0)**2, # wn
-                (0.0)**2, # we
-                (0.0)**2, # psi
-                ]), 
+            Q=10*np.diag([
+                (0.0003)**2,  # pn
+                (.0003)**2,  # pe
+                (0.003)**2,  # Vg
+                (np.radians(0.001))**2,  # chi
+                (0.0003)**2,  # wn
+                (0.003)**2,  # we
+                (0.003*np.radians(2.0))**2,  # psi
+            ]), 
+ 
             P0=np.diag([
-                (0.)**2, # pn
-                (0.0)**2, # pe
-                (0.0)**2, # Vg
-                (0.*np.pi/180.)**2, # chi
-                (0.0)**2, # wn
-                (0.0)**2, # we
-                (0.*np.pi/180.)**2, # psi
-                ]), 
+                (0.002)**2,  # pn (10m initial uncertainty)
+                (0.003)**2,  # pe (10m initial uncertainty)
+                (0.004)**2,  # Vg (5 m/s initial uncertainty)
+                (np.radians(0.001))**2,  # chi (10-degree uncertainty)
+                (0.002)**2,  # wn (2 m/s initial wind uncertainty)
+                (0.002)**2,  # we (2 m/s initial wind uncertainty)
+                (np.radians(0.002))**2,  # psi (10-degree uncertainty)
+            ]), 
+ 
             xhat0=np.array([
                 [0.0], # pn 
                 [0.0], # pe 
@@ -82,7 +84,7 @@ class Observer:
                 [0.0], # we 
                 [0.0], # psi
                 ]), 
-            Qu=0.*np.diag([
+            Qu=np.diag([
                 SENSOR.gyro_sigma**2, 
                 SENSOR.gyro_sigma**2, 
                 SENSOR.abs_pres_sigma,
@@ -97,9 +99,11 @@ class Observer:
                 SENSOR.accel_sigma**2, 
                 SENSOR.accel_sigma**2
                 ])
-        self.R_pseudo = np.diag([
-                0.0,  # pseudo measurement #1 ##### TODO #####
-                0.0,  # pseudo measurement #2 ##### TODO #####
+        self.R_pseudo =10* np.diag([
+                1.0,  # pseudo measurement #1 ##### TODO #####
+                1.0,  # pseudo measurement #2 ##### TODO #####
+                1.0,  # pseudo measurement #3 ##### TODO #####
+                1.0,  # pseudo measurement #4 ##### TODO #####
                 ])
         self.R_gps = np.diag([
                     SENSOR.gps_n_sigma**2,  # y_gps_n
@@ -115,14 +119,15 @@ class Observer:
     def update(self, measurement: MsgSensors) -> MsgState:
         ##### TODO #####
         # estimates for p, q, r are low pass filter of gyro minus bias estimate
-        self.estimated_state.p = 
-        self.estimated_state.q = 
-        self.estimated_state.r = 
+        self.estimated_state.p = self.lpf_gyro_x.update(measurement.gyro_x) - SENSOR.gyro_x_bias
+        self.estimated_state.q = self.lpf_gyro_y.update(measurement.gyro_y) - SENSOR.gyro_y_bias
+        self.estimated_state.r = self.lpf_gyro_z.update(measurement.gyro_z) - SENSOR.gyro_z_bias
+
         # invert sensor model to get altitude and airspeed
-        abs_pressure = 
-        diff_pressure = 
-        self.estimated_state.altitude = 
-        self.estimated_state.Va = 
+        abs_pressure = self.lpf_abs.update(measurement.abs_pressure)
+        diff_pressure = self.lpf_diff.update(measurement.diff_pressure)
+        self.estimated_state.altitude = abs_pressure / (CTRL.rho*CTRL.gravity)
+        self.estimated_state.Va = np.sqrt(2*diff_pressure/CTRL.rho)
         # estimate phi and theta with ekf
         u_attitude=np.array([
                 [self.estimated_state.p],
@@ -144,6 +149,8 @@ class Observer:
         self.estimated_state.phi = xhat_attitude.item(0)
         self.estimated_state.theta = xhat_attitude.item(1)
         # estimate pn, pe, Vg, chi, wn, we, psi with ekf
+        # p is not included because it is th roll rate and soes not contribute to determining position
+        # It does not directly affect position, velocity, or heading states—only the roll angle, 𝜙 ϕ does.
         u_smooth = np.array([
                 [self.estimated_state.q],
                 [self.estimated_state.r],
@@ -152,7 +159,7 @@ class Observer:
                 [self.estimated_state.theta],
                 ])
         xhat_position, P_position=self.position_ekf.propagate_model(u_smooth)
-        y_pseudo = np.array([[0.], [0.]])
+        y_pseudo = np.array([[0.], [0.], [0.], [0.]]) # pseudo measurement, I changed this to be a 4x1 array
         xhat_position, P_position=self.position_ekf.measurement_update(
             y=y_pseudo,
             u=u_smooth,
@@ -200,8 +207,13 @@ class Observer:
                 x = [phi, theta].T
                 u = [p, q, r, Va].T
         '''
-        ##### TODO #####
-        xdot =
+        phi, theta = x.flatten()
+        p, q, r, Va = u.flatten()
+        
+        phi_dot = p + q * np.sin(phi) * np.tan(theta) + r * np.cos(phi) * np.tan(theta)
+        theta_dot = q * np.cos(phi) - r * np.sin(phi)
+    
+        xdot = np.array([[phi_dot], [theta_dot]])
         return xdot
 
     def h_accel(self, x: np.ndarray, u: np.ndarray)->np.ndarray:
@@ -211,7 +223,14 @@ class Observer:
                 u = [p, q, r, Va].T
         '''
         ##### TODO #####
-        y = 
+        phi, theta = x.flatten()
+        p, q, r, Va = u.flatten()
+
+        # compute the acceleration due to gravity
+        y_accel_x = q * Va * np.sin(theta) + CTRL.gravity * np.sin(theta)
+        y_accel_y = r * Va * np.cos(theta) - p * Va * np.sin(theta) - CTRL.gravity * np.cos(theta) * np.sin(phi)
+        y_accel_z = -q * Va * np.cos(theta) - CTRL.gravity * np.cos(theta) * np.cos(phi)
+        y = np.array([[y_accel_x], [y_accel_y], [y_accel_z]])
         return y
 
     def f_smooth(self, x, u):
@@ -220,8 +239,19 @@ class Observer:
                 x = [pn, pe, Vg, chi, wn, we, psi].T
                 u = [p, q, r, Va, phi, theta].T
         '''
-        ##### TODO #####        
-        xdot = 
+        ##### TODO #####
+        pn, pe, Vg, chi, wn, we, psi = x.flatten()
+        q, r, Va, phi, theta = u.flatten()
+        pn_dot = Vg * np.cos(chi)
+        pe_dot = Vg * np.sin(chi)
+        Vg_dot = q * Va * np.sin(theta) + CTRL.gravity * np.sin(theta) 
+        chi_dot = CTRL.gravity / max(Vg, 1e-6) * np.tan(phi)
+        psi_dot = q * np.sin(phi) / np.cos(theta) + r * np.cos(phi) / np.cos(theta)
+        Vg_dot = (Va * psi_dot * (we * np.cos(psi) - wn * np.sin(psi))) / max(Vg, 1e-6)
+        wn_dot = 0.0
+        we_dot = 0.0
+        xdot = np.array([[pn_dot], [pe_dot], [Vg_dot], [chi_dot], [wn_dot], [we_dot], [psi_dot]])
+
         return xdot
 
     def h_pseudo(self, x: np.ndarray, u: np.ndarray)->np.ndarray:
@@ -232,8 +262,10 @@ class Observer:
             returns
                 y = [pn, pe, Vg, chi]
         '''
-        ##### TODO #####         
-        y = 
+        ##### TODO #####      
+        pn, pe, Vg, chi, wn, we, psi = x.flatten()
+           
+        y = np.array([[pn], [pe], [Vg], [chi]])
         return y
 
     def h_gps(self, x: np.ndarray, u: np.ndarray)->np.ndarray:
@@ -245,7 +277,9 @@ class Observer:
                 y = [pn, pe, Vg, chi]
         '''
         ##### TODO #####         
-        y = 
+        pn, pe, Vg, chi, wn, we, psi = x.flatten()
+
+        y = np.array([[pn], [pe], [Vg], [chi]])
         return y
 
 
