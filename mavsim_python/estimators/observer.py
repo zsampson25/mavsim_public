@@ -32,7 +32,7 @@ class Observer:
         # ekf for phi and theta
         self.attitude_ekf = ExtendedKalmanFilterContinuousDiscrete(
             f=self.f_attitude, 
-            Q=np.diag([
+            Q=10*np.diag([
                 (1e-3)**2, # phi 
                 (1e-3)**2, # theta
                 ]), 
@@ -57,7 +57,7 @@ class Observer:
             f=self.f_smooth, 
             Q=10*np.diag([
                 (0.0003)**2,  # pn
-                (.0003)**2,  # pe
+                (0.0003)**2,  # pe
                 (0.003)**2,  # Vg
                 (np.radians(0.001))**2,  # chi
                 (0.0003)**2,  # wn
@@ -99,7 +99,7 @@ class Observer:
                 SENSOR.accel_sigma**2, 
                 SENSOR.accel_sigma**2
                 ])
-        self.R_pseudo =10* np.diag([
+        self.R_pseudo = 10 * np.diag([
                 1.0,  # pseudo measurement #1 ##### TODO #####
                 1.0,  # pseudo measurement #2 ##### TODO #####
                 1.0,  # pseudo measurement #3 ##### TODO #####
