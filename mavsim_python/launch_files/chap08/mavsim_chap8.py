@@ -69,8 +69,8 @@ while sim_time < end_time:
     # -------- autopilot -------------
     measurements = mav.sensors()  # get sensor measurements
     estimated_state = observer.update(measurements)  # estimate states from measurements
-    delta, commanded_state = autopilot.update(commands, estimated_state)
-    #delta, commanded_state = autopilot.update(commands, mav.true_state)
+    # delta, commanded_state = autopilot.update(commands, estimated_state)
+    delta, commanded_state = autopilot.update(commands, mav.true_state)
 
     # -------- physical system -------------
     current_wind = wind.update()  # get the new wind vector

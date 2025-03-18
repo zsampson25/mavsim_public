@@ -21,13 +21,13 @@ class Observer:
 
         ##### TODO #####
         self.lpf_gyro_x = AlphaFilter(alpha=0.3, y0=initial_measurements.gyro_x)
-        self.lpf_gyro_y = AlphaFilter(alpha=0.3, y0=initial_measurements.gyro_y)
-        self.lpf_gyro_z = AlphaFilter(alpha=0.3, y0=initial_measurements.gyro_z)
-        self.lpf_accel_x = AlphaFilter(alpha=0.3, y0=initial_measurements.accel_x)
+        self.lpf_gyro_y = AlphaFilter(alpha=0.2, y0=initial_measurements.gyro_y)
+        self.lpf_gyro_z = AlphaFilter(alpha=0.5, y0=initial_measurements.gyro_z)
+        self.lpf_accel_x = AlphaFilter(alpha=0.5, y0=initial_measurements.accel_x)
         self.lpf_accel_y = AlphaFilter(alpha=0.3, y0=initial_measurements.accel_y)
-        self.lpf_accel_z = AlphaFilter(alpha=0.3, y0=initial_measurements.accel_z)
+        self.lpf_accel_z = AlphaFilter(alpha=0.4, y0=initial_measurements.accel_z)
         # use alpha filters to low pass filter absolute and differential pressure
-        self.lpf_abs = AlphaFilter(alpha=0.5, y0=initial_measurements.abs_pressure)
+        self.lpf_abs = AlphaFilter(alpha=0.7, y0=initial_measurements.abs_pressure)
         self.lpf_diff = AlphaFilter(alpha=0.3, y0=initial_measurements.diff_pressure)
         # ekf for phi and theta
         self.attitude_ekf = ExtendedKalmanFilterContinuousDiscrete(
@@ -55,7 +55,7 @@ class Observer:
         # ekf for pn, pe, Vg, chi, wn, we, psi
         self.position_ekf = ExtendedKalmanFilterContinuousDiscrete(
             f=self.f_smooth, 
-            Q=10*np.diag([
+            Q=1000*np.diag([
                 (0.0003)**2,  # pn
                 (0.0003)**2,  # pe
                 (0.003)**2,  # Vg
@@ -253,19 +253,20 @@ class Observer:
         xdot = np.array([[pn_dot], [pe_dot], [Vg_dot], [chi_dot], [wn_dot], [we_dot], [psi_dot]])
 
         return xdot
-
-    def h_pseudo(self, x: np.ndarray, u: np.ndarray)->np.ndarray:
-        '''
-            measurement model measurement model for wind triangale pseudo measurement: y=y(x, u)
-                x = [pn, pe, Vg, chi, wn, we, psi].T
-                u = [q, r, Va, phi, theta].T
-            returns
-                y = [pn, pe, Vg, chi]
-        '''
-        ##### TODO #####      
+    
+    def h_pseudo(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         pn, pe, Vg, chi, wn, we, psi = x.flatten()
-           
-        y = np.array([[pn], [pe], [Vg], [chi]])
+
+        # Enforce wind constraints using airspeed and ground speed
+        Vn = Vg * np.cos(chi)
+        Ve = Vg * np.sin(chi)
+        
+        y = np.array([
+            [pn], 
+            [pe], 
+            [Vn - wn],  # Ground speed in North should match wind + airspeed
+            [Ve - we]   # Ground speed in East should match wind + airspeed
+        ])
         return y
 
     def h_gps(self, x: np.ndarray, u: np.ndarray)->np.ndarray:
