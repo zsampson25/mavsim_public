@@ -6,7 +6,7 @@ from ufo_observer import EkfStateObserver
 sys.path.insert(0,os.fspath(P.Path(__file__).parents[2]))
 
 # load the data
-ufo_data = np.loadtxt(open("mavsim_public/mavsim_python/ufo_data.txt", "rb"), delimiter=",")
+ufo_data = np.loadtxt(open("mavsim_public/mavsim_python/Exam/ufo_data.txt", "rb"), delimiter=",")
 time = ufo_data[:,0]
 force = ufo_data[:,1]
 z = ufo_data[:,2]

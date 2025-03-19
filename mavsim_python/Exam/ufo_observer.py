@@ -30,7 +30,7 @@ class EkfStateObserver:
         z_m = inp[1]
         t = inp[2]
         if t == 90.65:
-            print("t = 90.85")
+            print("t = 90.65")
 
         # prediction step
         N = 10
