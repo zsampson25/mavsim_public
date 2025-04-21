@@ -18,12 +18,12 @@ import parameters.simulation_parameters as SIM
 import parameters.planner_parameters as PLAN
 from models.mav_dynamics_sensors import MavDynamics
 from models.wind_simulation import WindSimulation
-from controllers.autopilot import Autopilot
+from controllers.autopilot_lqr import Autopilot
 from estimators.observer import Observer
 #from estimators.observer_full import Observer
 from planners.path_follower import PathFollower
-from planners.path_manager import PathManager
-from planners.path_planner import PathPlanner
+from planners.path_manager_max import PathManager
+from planners.path_planner_max import PathPlanner
 from viewers.view_manager import ViewManager
 import time
 from message_types.msg_world_map import MsgWorldMap
@@ -38,10 +38,11 @@ path_follower = PathFollower()
 path_manager = PathManager()
 #planner_type = 'simple_straight'  # return simple waypoint path
 #planner_type = 'simple_dubins'  # return simple dubins waypoint path
-#planner_type = 'rrt_straight'  # plan path through city using straight-line RRT
-planner_type = 'rrt_dubins'  # plan path through city using dubins RRT
+planner_type = 'rrt_straight'  # plan path through city using straight-line RRT
+# planner_type = 'rrt_dubins'  # plan path through city using dubins RRT
 path_planner = PathPlanner(type=planner_type)
-viewers = ViewManager(map=True,
+viewers = ViewManager(animation=True,
+                    map=True,
                       planning=True, 
                       video=False, video_name='chap12.mp4')
 world_map = MsgWorldMap()

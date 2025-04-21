@@ -113,6 +113,20 @@ class PathManager:
                       state: MsgState):
         mav_pos = np.array([[state.north, state.east, -state.altitude]]).T
         # if the waypoints have changed, update the waypoint pointer
+        if waypoints.flag_waypoints_changed is True:
+            waypoints.flag_waypoints_changed = False
+            self._num_waypoints = waypoints.num_waypoints
+            self._initialize_pointers()
+            self._construct_line(waypoints)
+
+        if self._inHalfSpace(mav_pos):
+            # if the MAV is in the halfspace, increment the pointers
+            self._increment_pointers()
+            # construct the next line
+            self._construct_line(waypoints)
+            if self._ptr_current == 0:
+                # if the pointer is at the end of the list, request new waypoints
+                self.manager_requests_waypoints = True
         
         ##### TODO ######
         # Use functions - self._initialize_pointers(), self._construct_line()
@@ -122,19 +136,47 @@ class PathManager:
         # waypoints.__, radius
 
     def _fillet_manager(self,  
-                        waypoints: MsgWaypoints, 
-                        radius: float, 
-                        state: MsgState):
-        mav_pos = np.array([[state.north, state.east, -state.altitude]]).T
-        # if the waypoints have changed, update the waypoint pointer
+                            waypoints: MsgWaypoints,
+                            radius: float,
+                            state: MsgState):
+            mav_pos = np.array([[state.north, state.east, -state.altitude]]).T
+        
+            if waypoints.flag_waypoints_changed is True:
+                waypoints.flag_waypoints_changed = False
+                self._num_waypoints = waypoints.num_waypoints
+                self._initialize_pointers()
+                self._construct_fillet_line(waypoints, radius)
+                self._manager_state = 1
+        
+            if self._manager_state == 1:  # Following a straight-line path
+                if self._inHalfSpace(mav_pos):
+                    print('Curve')
+                    self._manager_state = 2
+                    self._construct_fillet_circle(waypoints, radius)
+        
+            elif self._manager_state == 2:  # Starting fillet turn and verify that the MAV has left the halfspace            
+                if not self._inHalfSpace(mav_pos):
+                    print('HalfSpace')
+                    self._manager_state = 3
+            
+            elif self._manager_state == 3:  # Following a straight line path
+                if self._inHalfSpace(mav_pos):
+                    print('Straight')
+                    self._increment_pointers()
+                    self._construct_fillet_line(waypoints, radius)
+                    if self._ptr_next == 0:
+                        current = waypoints.ned[:, self._ptr_current:self._ptr_current+1]
+                        self._halfspace_r = current
+                        self.manager_state = 4
+                    else:
+                        self.manager_state = 1
 
-        ##### TODO ######
-        # Use functions - self._initialize_pointers(), self._construct_fillet_line(),
-        # self._inHalfSpace(), self._construct_fillet_circle(), self._increment_pointers()
+            elif self._manager_state == 4:  # Following a straight line path
+                if self._inHalfSpace(mav_pos):
+                    self.manager_requests_waypoints = True
+                   
 
-        # Use variables self._num_waypoints, self._manager_state, self._ptr_current
-        # self.manager_requests_waypoints, waypoints.__, radius
-      
+        
 
     def _dubins_manager(self,  
                         waypoints: MsgWaypoints, 
@@ -157,60 +199,106 @@ class PathManager:
         if self._num_waypoints >= 3:
             ##### TODO #####
             self._ptr_previous = 0
-            self._ptr_current = 0
-            self._ptr_next = 0
+            self._ptr_current = 1
+            self._ptr_next = 2
         else:
             print('Error Path Manager: need at least three waypoints')
 
     def _increment_pointers(self):
         ##### TODO #####
-        self._ptr_previous = 0
-        self._ptr_current = 0
-        self._ptr_next = 0
+        self._ptr_previous = (self._ptr_previous + 1) % self._num_waypoints
+        self._ptr_current = (self._ptr_current + 1) % self._num_waypoints
+        self._ptr_next = (self._ptr_next + 1) % self._num_waypoints
 
     def _construct_line(self, 
                         waypoints: MsgWaypoints):
         previous = waypoints.ned[:, self._ptr_previous:self._ptr_previous+1]
         ##### TODO #####
-        # current = ?
-        # next = ?
-       
+        current = waypoints.ned[:, self._ptr_current:self._ptr_current+1]
+        next = waypoints.ned[:, self._ptr_next:self._ptr_next+1]
+
+        # q stuff
+        q_previous = (current - previous) / np.linalg.norm(current - previous)
+        q_next = (next - current) / np.linalg.norm(next - current)
+        self._path.line_origin = previous
+        self._path.line_direction = q_previous
+        self._path.airspeed = waypoints.airspeed[self._ptr_current]
+        self._path.type = 'line'
+
+
+
         # update halfspace variables
-        # self._halfspace_n =
-        # self._halfspace_r = 
+        self._halfspace_n = ((q_previous + q_next) / 2.0)
+        self._halfspace_n = self._halfspace_n / np.linalg.norm(self._halfspace_n)
+        self._halfspace_r = current
         
         # Update path variables
-        # self._path.__ =
 
-    def _construct_fillet_line(self, 
-                               waypoints: MsgWaypoints, 
+    def _construct_fillet_line(self,
+                               waypoints: MsgWaypoints,
                                radius: float):
-        previous = waypoints.ned[:, self.ptr_previous:self._ptr_previous+1]
-        ##### TODO #####
-        # current = ?
-        # next = ?
-
-        # update halfspace variables
-        # self._halfspace_n =
-        # self._halfspace_r = 
-        
-        # Update path variables
-        # self._path.__ =
-
-    def _construct_fillet_circle(self, 
-                                 waypoints: MsgWaypoints, 
-                                 radius: float):
         previous = waypoints.ned[:, self._ptr_previous:self._ptr_previous+1]
-        ##### TODO #####
-        # current = ?
-        # next = ?
+        current = waypoints.ned[:, self._ptr_current:self._ptr_current+1]
+        next_wp = waypoints.ned[:, self._ptr_next:self._ptr_next+1]
 
-        # update halfspace variables
-        # self._halfspace_n =
-        # self._halfspace_r = 
-        
+        q_previous = (current - previous) / np.linalg.norm(current - previous)
+        q_next = (next_wp - current) / np.linalg.norm(next_wp - current)
+       
+        angle = np.arccos(-q_previous.T @ q_next)
+
+        # Update the halfspace variables
+        # n = vector
+        # r = point on the plane
+        #z = current - (radius / np.tan(angle / 2.0)) * q_previous      # what the book says
+        z = current + (radius / np.sin(angle / (2.0))) * q_next        
+
+        self._halfspace_n = q_previous
+        self._halfspace_r = z
+       
         # Update path variables
-        # self._path.__ =
+        self._path.type = 'line'
+        self._path.line_origin = previous
+        self._path.line_direction = q_previous
+        self._path.airspeed = waypoints.airspeed[self._ptr_current]
+       
+    def _construct_fillet_circle(self,
+                                 waypoints: MsgWaypoints,
+                                 radius: float):
+        wi_next = waypoints.ned[:, self._ptr_previous:self._ptr_previous+1]
+        wi_current = waypoints.ned[:, self._ptr_current:self._ptr_current+1]
+        wi_previous = waypoints.ned[:, self._ptr_next:self._ptr_next+1]
+
+        q_previous = (wi_current - wi_previous) / np.linalg.norm(wi_current - wi_previous)
+        q_current = (wi_next - wi_current) / np.linalg.norm(wi_next - wi_current)
+       
+        angle = np.arccos(-q_previous.T @ q_current)
+
+        center = wi_current - (radius / np.sin(angle / 2.0)) * ((q_previous - q_current) / np.linalg.norm(q_previous - q_current))
+        #z = wi_current + (radius / np.sin(angle / (2.0))) * q_current           # what the book says
+        z = wi_current - (radius / np.sin(angle / 2.0)) * q_previous
+       
+        # print('z', z)
+        # print('center', center)
+        # print('z_previous', wi_current - (radius / np.tan(angle / 2.0)) * q_previous)
+        # print('angle', angle)
+        # print('radius', radius)
+
+        # Update halfspace variables
+        # n = vector
+        # r = point on the plane
+        self._halfspace_n = q_current  
+        self._halfspace_r = z
+       
+        # Update path variables
+        self._path.type = 'orbit'
+        self._path.orbit_center = center
+        self._path.orbit_radius = radius
+        if np.sign(np.cross(q_previous.flatten(), q_current.flatten())[2]) == 1:
+            self._path.orbit_direction = 'CCW'  #CW orig
+        else:
+            self._path.orbit_direction = 'CW'   #CCW orig
+        self._path.airspeed = waypoints.airspeed[self._ptr_current]
+       
 
     def _construct_dubins_circle_start(self, 
                                        waypoints: MsgWaypoints, 
@@ -250,8 +338,9 @@ class PathManager:
 
     def _inHalfSpace(self, 
                      pos: np.ndarray)->bool:
-        '''Is pos in the half space defined by r and n?'''):
-        if (pos-self._halfspace_r).T @ self._halfspace_n >= 0:
+        # '''Is pos in the half space defined by r and n?'''):
+        pos_half_space = (pos - self._halfspace_r).T @ self._halfspace_n
+        if np.all(pos_half_space >= 0):
             return True
         else:
             return False

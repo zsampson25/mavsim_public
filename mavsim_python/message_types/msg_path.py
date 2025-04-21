@@ -41,3 +41,39 @@ class MsgPath:
         self.orbit_direction = 'CW'
         # flag that indicates that path has been plotted
         self.plot_updated = bool(False)
+        
+    def set(self,
+            type: str='line',
+            airspeed: float=25,
+            line_origin: np.ndarray=np.array([[0.], [0.], [0.]]),
+            line_direction: np.ndarray=np.array([[1.], [0.], [0.]]),
+            orbit_center: np.ndarray=np.array([[0.], [0.], [0.]]),
+            orbit_radius: float=100,
+            orbit_direction: str='CW',
+            helix_start_angle: float=0,
+            helix_climb_angle: float=0,
+        ):
+        if type=='line':
+            self.type = type
+            self.airspeed = airspeed
+            self.line_origin = line_origin
+            self.line_direction = line_direction/np.linalg.norm(line_direction)
+            self.plot_updated=False
+            return
+        if type=='orbit':
+            self.type = type
+            self.airspeed = airspeed
+            self.orbit_center = orbit_center
+            self.orbit_radius = orbit_radius
+            self.orbit_direction = orbit_direction
+            self.plot_updated=False
+            return
+        if type=='helix':
+            self.type = type
+            self.airspeed = airspeed
+            self.orbit_center = orbit_center
+            self.orbit_radius = orbit_radius
+            self.orbit_direction = orbit_direction
+            self.helix_start_angle = helix_start_angle
+            self.helix_climb_angle = helix_climb_angle
+            self.plot_updated=False
