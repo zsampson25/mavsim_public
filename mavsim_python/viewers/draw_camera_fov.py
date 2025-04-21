@@ -8,7 +8,7 @@ import numpy as np
 from numpy import cos, sin
 from numpy.linalg import norm
 import pyqtgraph.opengl as gl
-from tools.rotations import Euler2Rotation
+from tools.rotations import euler_to_rotation as Euler2Rotation
 import parameters.camera_parameters as CAM
 
 
