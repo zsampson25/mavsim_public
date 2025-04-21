@@ -20,12 +20,12 @@ from models.camera import Camera
 from models.target_dynamics import TargetDynamics
 from models.mav_dynamics_camera import MavDynamics
 from models.gimbal import Gimbal
-from control.autopilot import Autopilot
-from estimation.observer import Observer
-from estimation.geolocation import Geolocation
+from controllers.autopilot_lqr import Autopilot
+from estimators.observer import Observer
+from estimators.geolocation import Geolocation
 from viewers.geolocation_viewer import GeolocationViewer
-from planning.path_follower import PathFollower
-from planning.path_manager_follow_target import PathManager
+from planners.path_follower import PathFollower
+from planners.path_manager_follow_target import PathManager
 from viewers.data_viewer import DataViewer
 from viewers.mav_world_camera_viewer import MAVWorldCameraViewer
 from viewers.camera_viewer import CameraViewer
@@ -91,14 +91,14 @@ while sim_time < SIM.end_time:
     estimated_state = mav.true_state
 
     # -------camera control-------------
-    #gimbal_cmd = gimbal.pointAtGround(estimated_state)  # point gimbal at ground
+    # gimbal_cmd = gimbal.pointAtGround(estimated_state)  # point gimbal at ground
     estimated_target_position = geolocation.update(estimated_state, pixels)
-    #gimbal_cmd = gimbal.pointAtPosition(estimated_state, estimated_target_position) # point gimbal at target position
-    gimbal_cmd = gimbal.pointAtPosition(estimated_state, target.position())  # point gimbal at target position
+    # gimbal_cmd = gimbal.pointAtPosition(estimated_state, estimated_target_position) # point gimbal at estimated target position
+    gimbal_cmd = gimbal.pointAtPosition(estimated_state, target.position())  # point gimbal at true target position
 
     # -------path manager-------------
-    path = path_manager.update(target.position())
-    #path = path_manager.update(estimated_target_position)
+    path = path_manager.update(target.position()) # center orbit on true target position
+    # path = path_manager.update(estimated_target_position) # center orbit on estimated target position
 
     # -------path follower-------------
     autopilot_commands = path_follower.update(path, estimated_state)

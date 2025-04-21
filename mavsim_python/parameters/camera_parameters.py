@@ -15,4 +15,4 @@ fps = 10  # frames per second
 pix = 480  # size of (square) pixel array
 fov = np.radians(10)  # field of view of camera
 f = 480 # (pix / 2) / np.tan(fov / 2)  # focal range
-sigma_pixel = 2  # (pixels) - standard of the pixel noise
+sigma_pixel = 2  # (pixels) - standard deviation of pixel noise

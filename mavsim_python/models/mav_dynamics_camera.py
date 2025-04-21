@@ -12,7 +12,7 @@ import numpy as np
 from models.mav_dynamics_sensors import MavDynamics as MavDynamicsSensors
 import parameters.camera_parameters as CAM
 import message_types.msg_delta as MsgDelta
-from tools.saturate import saturate
+
 
 class MavDynamics(MavDynamicsSensors):
     def __init__(self, Ts: float):
@@ -25,8 +25,18 @@ class MavDynamics(MavDynamicsSensors):
         # gimbal azimuth dynamics
         az = self._state[13,0]
         az_up = az + self._ts_simulation * CAM.az_gain * delta.gimbal_az
-        self._state[13,0] = saturate(az_up, -CAM.az_limit, CAM.az_limit)
+        self._state[13,0] = self.saturate(az_up, -CAM.az_limit, CAM.az_limit)
         # gimbal elevation dynamics
         el = self._state[14,0]
         el_up = el + self._ts_simulation * CAM.el_gain * delta.gimbal_el
-        self._state[14,0] = saturate(el_up, -CAM.el_limit, CAM.el_limit)
+        self._state[14,0] = self.saturate(el_up, -CAM.el_limit, CAM.el_limit)
+
+
+    def saturate(self, input, low_limit, up_limit):
+        if input <= low_limit:
+            output = low_limit
+        elif input >= up_limit:
+            output = up_limit
+        else:
+            output = input
+        return output
