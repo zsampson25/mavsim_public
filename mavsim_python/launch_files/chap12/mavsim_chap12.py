@@ -22,8 +22,8 @@ from controllers.autopilot_lqr import Autopilot
 from estimators.observer import Observer
 #from estimators.observer_full import Observer
 from planners.path_follower import PathFollower
-from planners.path_manager_max import PathManager
-from planners.path_planner_max import PathPlanner
+from planners.path_manager_m import PathManager
+from planners.path_planner_m import PathPlanner
 from viewers.view_manager import ViewManager
 import time
 from message_types.msg_world_map import MsgWorldMap
